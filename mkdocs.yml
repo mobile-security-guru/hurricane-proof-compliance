@@ -1,5 +1,5 @@
 site_name: Hurricane-Proof Compliance
-theme: readthedocs
+theme: material
 nav:
   - Home: index.md
   - Tutorials:

@@ -2,8 +2,21 @@ site_name: Hurricane-Proof Compliance
 theme: material
 nav:
   - Home: index.md
-  - Tutorials:
+  - 🧭 Tutorials:
       - Overview: tutorials/index.md
       - The Deep Foundation: tutorials/foundation.md
       - The Reinforced Roof: tutorials/roof.md
       - Impact-Resistant Windows: tutorials/windows.md
+  - 🛠️ How‑To Guides:
+      - Get a Consent Token: how-to-guides/get-consent-token.md
+      - Install Impact‑Resistant Windows: how-to-guides/install-windows.md
+      - Bolt Your House to the Foundation: how-to-guides/install-straps.md
+      - Seal Doors Against Storm Surge: how-to-guides/seal-doors.md
+  - 📚 Reference:
+      - Hurricane Straps Specifications: reference/straps-specs.md
+      - KV Store Tensile Strength: reference/foundation-specs.md
+      - GDPR Gatekeeper API: reference/window-specs.md
+  - 💡 Explanation:
+      - Why a Solid Foundation Matters: explanation/foundation-why.md
+      - The History of Compliance Codes: explanation/building-codes.md
+      - Principles of Structural Engineering: explanation/resilience-principles.md

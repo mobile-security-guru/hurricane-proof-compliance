@@ -1,0 +1,9 @@
+site_name: Hurricane-Proof Compliance
+theme: readthedocs
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - The Deep Foundation: tutorials/foundation.md
+      - The Reinforced Roof: tutorials/roof.md
+      - Impact-Resistant Windows: tutorials/windows.md

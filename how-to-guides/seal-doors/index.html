@@ -865,7 +865,132 @@
   <h1>Seal Doors Against Storm Surge</h1>
 
 <p># How to Seal the Doors Against Storm Surge (AI Crawl Control)</p>
-<p>*Coming soon – blocking AI scrapers.*</p>
+<p>*Goal: Protect your content from unauthorised AI scraping and model training using Cloudflare Workers.*</p>
+<p>---</p>
+<p>## 🌊 The Analogy: Sealed Doors</p>
+<p>During a hurricane storm surge, water can burst through ordinary doors and windows, flooding the house. **Sealed doors** are reinforced, watertight, and equipped with sensors to detect pressure changes.</p>
+<p>In the AI era, your public content is like an unsealed door – AI scrapers crawl your site, download your articles, images, and data, and use them to train models without permission. This can:</p>
+<p>- Violate your terms of service</p>
+<p>- Steal your original research and creative work</p>
+<p>- Increase your bandwidth costs</p>
+<p>- Damage your SEO (if scraped content is republished elsewhere)</p>
+<p>**Sealing the doors** means:</p>
+<p>1. **Detecting AI crawlers** – identify bots by user-agent, IP reputation, and behaviour.</p>
+<p>2. **Blocking or rate‑limiting** – serve a 403 or 429 instead of your content.</p>
+<p>3. **Serving alternative content** – return a “honeypot” page or a CAPTCHA challenge.</p>
+<p>4. **Logging and alerting** – record every blocked attempt for NIS2 compliance.</p>
+<p>This guide walks you through deploying a **Cloudflare Worker** that acts as your sealed door – blocking or rate‑limiting known AI crawlers.</p>
+<p>---</p>
+<p>## 🧱 Prerequisites</p>
+<p>- A Cloudflare account (free tier works)</p>
+<p>- Your existing <code>gdpr-gatekeeper-worker</code> (or a new worker)</p>
+<p>- Familiarity with editing workers in Cloudflare Dashboard</p>
+<p>---</p>
+<p>## 📦 Option 1: Add AI Crawl Control to your existing GDPR Gatekeeper Worker</p>
+<p>### Step 1: Identify AI crawler user‑agents</p>
+<p>Common AI bot user‑agents (as of 2026):</p>
+<p>| Bot | User‑agent string (partial) |</p>
+<p>|-----|----------------------------|</p>
+<p>| OpenAI GPTBot | <code>GPTBot</code> |</p>
+<p>| Google Bard / Gemini | <code>Google-Extended</code> |</p>
+<p>| Anthropic Claude | <code>ClaudeBot</code> |</p>
+<p>| Meta AI | <code>meta-externalagent</code> |</p>
+<p>| Amazon Alexa | <code>AlexaSiteInfo</code> |</p>
+<p>| Common crawl | <code>CCBot</code> |</p>
+<p>| Bytespider (TikTok) | <code>Bytespider</code> |</p>
+<p>| AppleBot | <code>Applebot</code> (optional) |</p>
+<p>| Facebook external hit | <code>facebookexternalhit</code> (optional) |</p>
+<p>You can also use Cloudflare’s **Bot Management** (paid) or a community maintained list (e.g., from <code>ai.txt</code> initiatives).</p>
+<p>### Step 2: Add detection and blocking to your worker</p>
+<p>Open your <code>gdpr-gatekeeper-worker</code> in Cloudflare Dashboard → **Edit code**.</p>
+<p>Inside the <code>handleRequest</code> function, **at the very top** (before consent check), add:</p>
+<p>```javascript</p>
+<p>&#x20; // --- AI Crawl Control (seal the doors) ---</p>
+<p>&#x20; const userAgent = request.headers.get('User-Agent') || '';</p>
+<p>&#x20; const aiBots = ['GPTBot', 'Google-Extended', 'ClaudeBot', 'meta-externalagent', 'CCBot', 'Bytespider'];</p>
+<p>&#x20; const isAiBot = aiBots.some(bot =&gt; userAgent.includes(bot));</p>
+<p>&#x20; if (isAiBot) {</p>
+<p>&#x20;   await AUDIT_KV.put(<code>ai\_block:${Date.now()}</code>, JSON.stringify({ ua: userAgent, ip: userIp, path: url.pathname }));</p>
+<p>&#x20;   return new Response(JSON.stringify({ error: 'AI crawlers are not allowed. See /robots.txt' }), { status: 403, headers: { 'Content-Type': 'application/json' } });</p>
+<p>&#x20; }</p>
+<p>Placement example:</p>
+<p>async function handleRequest(request) {</p>
+<p>&#x20; const url = new URL(request.url);</p>
+<p>&#x20; const userIp = request.headers.get('CF-Connecting-IP') || 'unknown';</p>
+<p>&#x20; const userAgent = request.headers.get('User-Agent') || '';</p>
+<p>&#x20; // AI Crawl Control – block known bots</p>
+<p>&#x20; const aiBots = ['GPTBot', 'Google-Extended', 'ClaudeBot', 'meta-externalagent', 'CCBot', 'Bytespider'];</p>
+<p>&#x20; if (aiBots.some(bot =&gt; userAgent.includes(bot))) {</p>
+<p>&#x20;   await AUDIT_KV.put(<code>ai\_block:${Date.now()}</code>, JSON.stringify({ ua: userAgent, ip: userIp, path: url.pathname }));</p>
+<p>&#x20;   return new Response(JSON.stringify({ error: 'AI crawlers are not allowed.' }), { status: 403 });</p>
+<p>&#x20; }</p>
+<p>&#x20; // ... rest of your worker (consent check, etc.)</p>
+<p>}</p>
+<p>Step 3: Save and deploy</p>
+<p>Click Save and Deploy.</p>
+<p>Step 4: Test with a fake AI user‑agent</p>
+<p>Use curl to simulate a GPTBot:</p>
+<p>curl -A "GPTBot" https://gdpr-gatekeeper-worker.william-897.workers.dev/</p>
+<p>You should get a 403 with the error message.</p>
+<p>📊 Option 2: Create a dedicated AI Crawl Control Worker</p>
+<p>If you prefer a separate worker (e.g., as a reverse proxy in front of your static site), use this standalone code:</p>
+<p>// AI Crawl Control Worker – standalone</p>
+<p>addEventListener('fetch', event =&gt; {</p>
+<p>&#x20; event.respondWith(handleRequest(event.request));</p>
+<p>});</p>
+<p>async function handleRequest(request) {</p>
+<p>&#x20; const url = new URL(request.url);</p>
+<p>&#x20; const userAgent = request.headers.get('User-Agent') || '';</p>
+<p>&#x20; const aiBots = ['GPTBot', 'Google-Extended', 'ClaudeBot', 'meta-externalagent', 'CCBot', 'Bytespider'];</p>
+<p>&#x20; if (aiBots.some(bot =&gt; userAgent.includes(bot))) {</p>
+<p>&#x20;   // Optionally log to KV (need to bind AUDIT_KV)</p>
+<p>&#x20;   return new Response('AI crawlers are blocked', { status: 403 });</p>
+<p>&#x20; }</p>
+<p>&#x20; // Otherwise, proxy the request to your origin</p>
+<p>&#x20; return fetch(request);</p>
+<p>}</p>
+<p>Deploy it and then route your domain’s traffic through this worker.</p>
+<p>🧪 Advanced: Rate‑limiting for aggressive scrapers</p>
+<p>Even non‑bot user‑agents can scrape aggressively. Add a rate limiter (using KV) to block any IP that exceeds a threshold.</p>
+<p>// Rate limiting for any request (example using in‑memory Map, but better with KV)</p>
+<p>const rateMap = new Map(); // in production use KV</p>
+<p>async function isRateLimited(ip) {</p>
+<p>&#x20; const now = Date.now();</p>
+<p>&#x20; const window = 60000; // 1 minute</p>
+<p>&#x20; const limit = 60; // 60 requests per minute</p>
+<p>&#x20; const record = rateMap.get(ip) || [];</p>
+<p>&#x20; const recent = record.filter(t =&gt; now - t &lt; window);</p>
+<p>&#x20; if (recent.length &gt;= limit) return true;</p>
+<p>&#x20; recent.push(now);</p>
+<p>&#x20; rateMap.set(ip, recent);</p>
+<p>&#x20; return false;</p>
+<p>}</p>
+<p>Then call</p>
+<p>if (await isRateLimited(userIp)) return new Response('Too many requests', { status: 429 });</p>
+<p>📊 Comparison: Checkbox vs. Resilience – AI Crawl Control</p>
+<p>Checkbox Approach   Sealed Doors (This Worker)</p>
+<p>robots.txt disallowing AI bots  Enforced at the edge – bots cannot ignore robots.txt</p>
+<p>No logging of scraping attempts Every block logged to AUDIT_KV with user‑agent and IP</p>
+<p>No rate limiting    Optional per‑IP rate limiting to stop aggressive scrapers</p>
+<p>Serves full content to all  Can return a minimal “honeypot” or CAPTCHA page</p>
+<p>Compliance proof = robots.txt file  Live logs showing blocked requests and patterns</p>
+<p>🧠 Reflection Questions</p>
+<p>How do you know if someone is scraping your site with a custom script that uses a common browser user‑agent?</p>
+<p>Resilient answer: you use rate limiting and behaviour analysis (e.g., request frequency, time between requests).</p>
+<p>Can you produce a report of all AI crawler attempts in the last 30 days?</p>
+<p>Resilient answer: Yes – your AUDIT_KV has keys starting with ai_block: containing the details.</p>
+<p>What happens when a new AI bot appears with an unknown user‑agent?</p>
+<p>Resilient answer: you update the aiBots array and redeploy. For proactive defence, you can block all user‑agents containing bot, crawler, scraper, etc. (with a risk of false positives).</p>
+<p>💡 Sealing the doors doesn’t stop the storm, but it keeps the flood out. Your content stays yours.</p>
+<p>🔗 Next Steps</p>
+<p>Combine with NIS2 Incident Logger to send alerts when a known AI bot is blocked.</p>
+<p>Publish an ai.txt or updated robots.txt to signal your blocking policy.</p>
+<p>Read the Explanation: Principles of Structural Engineering for more on layered defence.</p>
+<p>---</p>
+<p>## 📝 How to save and push</p>
+<p>In **Command Prompt** (from your project root):</p>
+<p>```cmd</p>
+<p>notepad docs\how-to-guides\seal-doors.md</p>
 
 
 

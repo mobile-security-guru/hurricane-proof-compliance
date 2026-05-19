@@ -865,8 +865,40 @@
   <h1>The Reinforced Roof</h1>
 
 <p># The Reinforced Roof: Endpoint \&amp; API Protection</p>
-<p>*Coming soon – rate limiting, intrusion detection, and API security with Cloudflare Workers.*</p>
-<p>In the meantime, review the [Deep Foundation](foundation.md).</p>
+<p>*Tutorial objective: Learn how to add a reinforced roof – rate limiting, intrusion detection, and API security – to your hurricane‑proof house using Cloudflare Workers.*</p>
+<p>---</p>
+<p>## 🧱 The Analogy: Why a Roof Matters</p>
+<p>After a deep foundation, the next layer of a hurricane‑proof house is the **reinforced roof**. A weak roof will tear off in high winds, exposing everything inside.</p>
+<p>- **Checkbox thinking:** “We have a firewall and an API key.” (Like a thin sheet of plywood nailed down.)</p>
+<p>- **Resilience:** A roof strapped to the foundation, with shingles designed to resist uplift, and sensors that detect the first loose tile. (Rate limiting, anomaly detection, and real‑time alerting.)</p>
+<p>In our toolkit, the roof is made of:</p>
+<p>1. **Rate limiting** – prevents a single attacker from overwhelming your API.</p>
+<p>2. **Intrusion detection** – logs suspicious patterns (e.g., repeated failed logins).</p>
+<p>3. **API security** – validates requests, blocks malicious payloads, and adds a Web Application Firewall (WAF).</p>
+<p>---</p>
+<p>## 🏗️ Component 1: Rate Limiting – The Shingles</p>
+<p>A checkbox says: “We have a rate limit of 100 requests per minute.”  </p>
+<p>Resilience says: “The limit is adaptive – stricter during storms, and we notify you when a client hits the limit.”</p>
+<p>### How to Build with Cloudflare Workers + KV</p>
+<p>Use the same <code>AUDIT\_KV</code> namespace to track request counts per IP.</p>
+<p>**Worker skeleton for rate limiting:**</p>
+<p>```javascript</p>
+<p>// Rate limiting middleware</p>
+<p>async function rateLimit(ip, env, limit = 100, window = 60) {</p>
+<p>&#x20; const key = <code>rate:${ip}</code>;</p>
+<p>&#x20; const current = await env.RATE_KV.get(key);</p>
+<p>&#x20; const now = Math.floor(Date.now() / 1000);</p>
+<p>&#x20; let requests = current ? JSON.parse(current) : [];</p>
+<p>&#x20; // Remove entries outside the window</p>
+<p>&#x20; requests = requests.filter(timestamp =&gt; now - timestamp &lt; window);</p>
+<p>&#x20; if (requests.length &gt;= limit) {</p>
+<p>&#x20;   await env.AUDIT_KV.put(<code>rate\_block:${now}</code>, JSON.stringify({ ip, requests }));</p>
+<p>&#x20;   return false;</p>
+<p>&#x20; }</p>
+<p>&#x20; requests.push(now);</p>
+<p>&#x20; await env.RATE_KV.put(key, JSON.stringify(requests), { expirationTtl: window });</p>
+<p>&#x20; return true;</p>
+<p>}</p>
 
 
 

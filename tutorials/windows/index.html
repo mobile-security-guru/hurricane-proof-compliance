@@ -873,9 +873,63 @@
 
 <h1 id="impactresistant-windows-data-residency-gdpr"># Impact‑Resistant Windows: Data Residency \&amp; GDPR</h1>
 <h1 id="_1"></h1>
-<h1 id="coming-soon-consent-management-and-eu-data-routing">*Coming soon – consent management and EU data routing.*</h1>
+<h1 id="tutorial-objective-learn-how-to-install-impactresistant-windows-gdpr-consent-management-data-residency-enforcement-and-privacybydesign-using-cloudflare-workers-and-kv">*Tutorial objective: Learn how to install impact‑resistant windows – GDPR consent management, data residency enforcement, and privacy‑by‑design – using Cloudflare Workers and KV.*</h1>
 <h1 id="_2"></h1>
-<h1 id="see-the-howto-guide-for-getting-a-consent-tokenhow-to-guidesget-consent-tokenmd">See the [How‑To Guide for getting a consent token](../how-to-guides/get-consent-token.md).</h1>
+<h1 id="-">---</h1>
+<h1 id="_3"></h1>
+<h1 id="the-analogy-why-windows-matter">## 🪟 The Analogy: Why Windows Matter</h1>
+<h1 id="_4"></h1>
+<h1 id="after-a-deep-foundation-and-a-reinforced-roof-the-next-vulnerability-in-a-hurricaneproof-house-is-the-windows-ordinary-windows-shatter-when-debris-hits-letting-the-storm-inside-impactresistant-windows-are-laminated-with-a-strong-interlayer-they-may-crack-but-dont-break-keeping-the-house-sealed">After a deep foundation and a reinforced roof, the next vulnerability in a hurricane‑proof house is the windows. Ordinary windows shatter when debris hits, letting the storm inside. **Impact‑resistant windows** are laminated with a strong interlayer; they may crack but don’t break, keeping the house sealed.</h1>
+<h1 id="_5"></h1>
+<h1 id="in-cybersecurity-windows-are-your-data-exchange-points-apis-forms-consent-dialogs-gdpr-requires">In cybersecurity, “windows” are your data exchange points – APIs, forms, consent dialogs. GDPR requires:</h1>
+<h1 id="_6"></h1>
+<h1 id="-clear-consent-before-collecting-personal-data-like-a-window-that-only-opens-when-you-turn-the-handle">- **Clear consent** before collecting personal data (like a window that only opens when you turn the handle).</h1>
+<h1 id="-data-residency-eu-user-data-must-stay-in-the-eu-like-a-window-that-only-opens-inward-not-outward">- **Data residency** – EU user data must stay in the EU (like a window that only opens inward, not outward).</h1>
+<h1 id="-right-to-be-forgotten-delete-user-data-on-request-close-the-window-permanently">- **Right to be forgotten** – delete user data on request (close the window permanently).</h1>
+<h1 id="_7"></h1>
+<h1 id="this-tutorial-shows-you-how-to-build-impactresistant-windows-using-the-gdpr-gatekeeper-worker-you-already-deployed-or-will-deploy-well-focus-on-three-layers">This tutorial shows you how to build impact‑resistant windows using the **GDPR Gatekeeper Worker** you already deployed (or will deploy). We'll focus on three layers:</h1>
+<h1 id="_8"></h1>
+<h1 id="1-consent-collection-validation-the-handle">1. **Consent collection \&amp; validation** – the handle.</h1>
+<h1 id="2-data-residency-enforcement-the-laminated-glass">2. **Data residency enforcement** – the laminated glass.</h1>
+<h1 id="3-audit-and-deletion-the-window-frame-that-records-every-opening-and-closing">3. **Audit and deletion** – the window frame that records every opening and closing.</h1>
+<h1 id="_9"></h1>
+<h1 id="-_1">---</h1>
+<h1 id="_10"></h1>
+<h1 id="layer-1-consent-collection-the-handle">## 🧱 Layer 1: Consent Collection – The Handle</h1>
+<h1 id="_11"></h1>
+<h1 id="a-checkbox-approach-we-have-a-cookie-banner-that-stores-consent-in-localstorage">A checkbox approach: “We have a cookie banner that stores consent in localStorage.”</h1>
+<h1 id="resilience-consent-is-stored-serverside-in-kv-linked-to-a-cryptographically-random-token-and-can-be-revoked-at-any-time">Resilience: “Consent is stored server‑side in KV, linked to a cryptographically random token, and can be revoked at any time.”</h1>
+<h1 id="_12"></h1>
+<h1 id="how-it-works-in-your-gdpr-gatekeeper-worker">### How it works in your GDPR Gatekeeper Worker</h1>
+<h1 id="_13"></h1>
+<h1 id="your-existing-worker-already-implements-this">Your existing worker already implements this:</h1>
+<h1 id="_14"></h1>
+<h1 id="-post-consent-creates-a-token-and-stores-true-in-consent_kv">- <code>POST /consent</code> – creates a token and stores <code>"true"</code> in <code>CONSENT\_KV</code>.</h1>
+<h1 id="-x-consent-token-header-required-for-all-other-endpoints">- <code>X-Consent-Token</code> header – required for all other endpoints.</h1>
+<h1 id="-no-token-403-error">- No token → 403 error.</h1>
+<h1 id="_15"></h1>
+<h1 id="why-this-is-resilient">**Why this is resilient:**</h1>
+<h1 id="-consent-is-not-stored-in-a-cookie-that-can-be-tampered-with">- Consent is not stored in a cookie that can be tampered with.</h1>
+<h1 id="-token-is-longlived-but-can-be-revoked-immediately-by-deleting-the-kv-entry">- Token is long‑lived but can be revoked immediately by deleting the KV entry.</h1>
+<h1 id="-audit-logs-record-each-consent-grant-and-denial">- Audit logs record each consent grant and denial.</h1>
+<h1 id="_16"></h1>
+<h1 id="enhancing-consent-with-user-details">### Enhancing consent with user details</h1>
+<h1 id="_17"></h1>
+<h1 id="you-can-extend-the-consent-endpoint-to-store-not-just-true-but-also-the-users-email-country-and-consent-timestamp-example-modification">You can extend the <code>/consent</code> endpoint to store not just <code>"true"</code> but also the user’s email, country, and consent timestamp. Example modification:</h1>
+<h1 id="_18"></h1>
+<h1 id="javascript">```javascript</h1>
+<h1 id="inside-post-consent-block">// Inside POST /consent block</h1>
+<h1 id="const-body-await-requestjson">const body = await request.json();</h1>
+<h1 id="const-useremail-bodyemail-null">const userEmail = body.email || null;</h1>
+<h1 id="const-usercountry-bodycountry-null">const userCountry = body.country || null;</h1>
+<h1 id="const-consentrecord">const consentRecord = {</h1>
+<h1 id="granted-true">&#x20; granted: true,</h1>
+<h1 id="email-useremail">&#x20; email: userEmail,</h1>
+<h1 id="country-usercountry">&#x20; country: userCountry,</h1>
+<h1 id="timestamp-datenow">&#x20; timestamp: Date.now(),</h1>
+<h1 id="token-newtoken">&#x20; token: newToken</h1>
+<h1 id="_19">};</h1>
+<h1 id="await-consent_kvputnewtoken-jsonstringifyconsentrecord-expirationttl-86400-365">await CONSENT_KV.put(newToken, JSON.stringify(consentRecord), { expirationTtl: 86400 * 365 });</h1>
 
 
 
